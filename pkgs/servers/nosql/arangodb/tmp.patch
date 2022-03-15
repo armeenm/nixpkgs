@@ -1,0 +1,21 @@
+diff --git a/lib/Logger/LoggerFeature.cpp b/lib/Logger/LoggerFeature.cpp
+index ed59145516..dcd1f37ef0 100644
+--- a/lib/Logger/LoggerFeature.cpp
++++ b/lib/Logger/LoggerFeature.cpp
+@@ -21,6 +21,7 @@
+ ////////////////////////////////////////////////////////////////////////////////
+ 
+ #include <unordered_set>
++#include <iostream>
+ 
+ #include "Basics/operating-system.h"
+ 
+@@ -247,6 +248,8 @@ void LoggerFeature::validateOptions(std::shared_ptr<ProgramOptions> options) {
+   if (options->processingResult().touched("log.file")) {
+     std::string definition;
+ 
++    std::cout << "f: " << _file << '\n';
++
+     if (_file == "+" || _file == "-") {
+       definition = _file;
+     } else {

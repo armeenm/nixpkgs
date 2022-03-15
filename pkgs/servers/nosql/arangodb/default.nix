@@ -1,7 +1,24 @@
-{ stdenv, lib, fetchFromGitHub, openssl, zlib, cmake, python2, perl, snappy, lzo, which }:
+{
+  stdenv, lib,
+  fetchFromGitHub,
+  cmake,
+  lzo,
+  openssl,
+  perl,
+  python3,
+  snappy,
+  which,
+  zlib
+}:
 
 let
-  common = { version, sha256 }: stdenv.mkDerivation {
+  updateCheckFiles = [
+    "js/client/client.js"
+    "js/server/server.js"
+    "js/server/bootstrap/coordinator.js"
+  ];
+
+  common = { version, hash }: stdenv.mkDerivation {
     pname = "arangodb";
     inherit version;
 
@@ -9,32 +26,40 @@ let
       repo = "arangodb";
       owner = "arangodb";
       rev = "v${version}";
-      inherit sha256;
+      inherit hash;
     };
 
-    nativeBuildInputs = [ cmake python2 perl which ];
+    #patches = [ ./tmp.patch ];
+
+    nativeBuildInputs = [ cmake python3 perl which ];
     buildInputs = [ openssl zlib snappy lzo ];
 
-    # prevent failing with "cmake-3.13.4/nix-support/setup-hook: line 10: ./3rdParty/rocksdb/RocksDBConfig.cmake.in: No such file or directory"
-    dontFixCmake       =                     lib.versionAtLeast version "3.5";
-    NIX_CFLAGS_COMPILE = lib.optionalString (lib.versionAtLeast version "3.5") "-Wno-error";
-    preConfigure       = lib.optionalString (lib.versionAtLeast version "3.5") "patchShebangs utils";
-
     postPatch = ''
-      sed -ie 's!/bin/echo!echo!' 3rdParty/V8/v*/gypfiles/*.gypi
+      for i in 3rdParty/V8/gypfiles/*.gypi; do
+        substituteInPlace "$i" --replace /bin/echo echo
+      done
 
-      # with nixpkgs, it has no sense to check for a version update
-      substituteInPlace js/client/client.js --replace "require('@arangodb').checkAvailableVersions();" ""
-      substituteInPlace js/server/server.js --replace "require('@arangodb').checkAvailableVersions();" ""
+      # Disable update checks
+      for i in $updateCheckFiles; do
+        substituteInPlace "$i" --replace "require('@arangodb').checkAvailableVersions();" ""
+      done
+
+      # Delete obsolete symlink (https://github.com/arangodb/arangodb/pull/15441)
+      rm cmake/RocksDBConfig.cmake.in
+
+      patchShebangs utils/*.sh
     '';
 
     cmakeFlags = [
-      # do not set GCC's -march=xxx based on builder's /proc/cpuinfo
+      # Avoid using builder's /proc/cpuinfo
       "-DUSE_OPTIMIZE_FOR_ARCHITECTURE=OFF"
-      # also avoid using builder's /proc/cpuinfo
       "-DHAVE_SSE42=${if stdenv.hostPlatform.sse4_2Support then "ON" else "OFF"}"
       "-DASM_OPTIMIZATIONS=${if stdenv.hostPlatform.sse4_2Support then "ON" else "OFF"}"
     ];
+
+    postInstall = ''
+      rm -rf $out/var
+    '';
 
     meta = with lib; {
       homepage = "https://www.arangodb.com";
@@ -45,16 +70,12 @@ let
     };
   };
 in {
-  arangodb_3_3 = common {
-    version = "3.3.24";
-    sha256 = "18175789j4y586qvpcsaqxmw7d6vc3s29qm1fja5c7wzimx6ilyp";
+  arangodb_3_7 = common {
+    version = "3.7.17";
+    hash = "sha256-M5FM7RuFBGCZrbSORzKqWqUuaCK+QUSYJzQg0c1vga8=";
   };
-  arangodb_3_4 = common {
-    version = "3.4.8";
-    sha256 = "0vm94lf1i1vvs04vy68bkkv9q43rsaf1y3kfs6s3jcrs3ay0h0jn";
-  };
-  arangodb_3_5 = common {
-    version = "3.5.1";
-    sha256 = "1jw3j7vaq3xgkxiqg0bafn4b2169jq7f3y0l7mrpnrpijn77rkrv";
+  arangodb_3_8 = common {
+    version = "3.8.6";
+    hash = "sha256-z8QzNkp4ZB1pEeZ6qKz8/uPB5VOEFuFbX9wAlYFuFvQ=";
   };
 }
