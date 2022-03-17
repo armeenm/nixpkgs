@@ -1,11 +1,12 @@
 { stdenv
 , lib
 , fetchFromGitHub
-, pkg-config
-, gfortran
-, texinfo
-, python2
 , boost
+, cmake
+, gfortran
+, pkg-config
+, python3
+, texinfo
   # Select SIMD alignment width (in bytes) for vectorization.
 , simdWidth ? 1
   # Pad arrays to simdWidth by default?
@@ -23,43 +24,42 @@ let
 in
 stdenv.mkDerivation rec {
   pname = "blitz++";
-  version = "1.0.1";
+  version = "1.0.2";
 
   src = fetchFromGitHub {
     owner = "blitzpp";
     repo = "blitz";
-    rev = "1.0.1";
-    sha256 = "0nq84vwvvbq7m0my6h835ijfw53bxdp42qjc6kjhk436888qy9rh";
+    rev = version;
+    hash = "sha256-wZDg+4lCd9iHvxuQQE/qs58NorkxZ0+mf+8PKQ57CDE=";
   };
 
-  nativeBuildInputs = [ pkg-config python2 texinfo ];
-  buildInputs = [ gfortran texinfo boost ];
+  nativeBuildInputs = [
+    cmake
+    gfortran
+    pkg-config
+    python3 
+    texinfo
+  ];
 
-  configureFlags =
-    [
-      "--enable-shared"
-      "--disable-static"
-      "--enable-fortran"
-      "--enable-optimize"
-      "--with-pic=yes"
-      "--enable-html-docs"
-      "--disable-doxygen"
-      "--disable-dot"
-      "--disable-latex-docs"
-      "--enable-simd-width=${toString simdWidth}"
-      "--with-boost=${boost.dev}"
-      "--with-boost-libdir=${boost.out}/lib"
-    ] ++ optional enablePadding "--enable-array-length-padding"
-    ++ optional enableSerialization "--enable-serialization"
-    ++ optional stdenv.is64bit "--enable-64bit";
+  buildInputs = [
+    boost 
+  ];
 
-  # skip broken library name detection
-  ax_boost_user_serialization_lib = lib.optionalString stdenv.isDarwin "boost_serialization";
+  postBuild = "make testsuite";
 
-  enableParallelBuilding = true;
+  cmakeFlags = [
+    "-DSIMD_EXTENSION=ON"
+    "-DBZ_SIMD_WIDTH=${toString simdWidth}"
+    #"-DBUILD_DOC=ON"
+    "-DFORTRAN_BENCHMARKS=ON"
+  ]
+  ++ optional doCheck "-DBUILD_TESTING=ON"
+  ++ optional enablePadding "-DARRAY_LENGTH_PADDING=ON"
+  ++ optional enableSerialization "-DENABLE_SERIALISATION=ON"
+  ++ optional stdenv.is64bit "-DBZ_FULLY64BIT=ON";
 
   inherit doCheck;
-  checkTarget = "check-testsuite check-examples";
+  #checkTarget = "build/check-testsuite check-examples";
 
   meta = with lib; {
     description = "Fast multi-dimensional array library for C++";
