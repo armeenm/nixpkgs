@@ -1104,6 +1104,7 @@ mapAliases ({
 
   residualvm = throw "residualvm was merged to scummvm code in 2018-06-15; consider using scummvm"; # Added 2021-11-27
   retroArchCores = throw "retroArchCores has been removed. Please use overrides instead, e.g.: `retroarch.override { cores = with libretro; [ ... ]; }`"; # Added 2021-11-19
+  retrofe = throw "retrofe has been removed: abandoned by upstream"; # Added 2022-04-24
   retroshare06 = retroshare;
   rfkill = throw "rfkill has been removed, as it's included in util-linux"; # Added 2020-08-23
   riak-cs = throw "riak-cs is not maintained anymore"; # Added 2020-10-14

@@ -1341,8 +1341,6 @@ with pkgs;
 
   resim = callPackage ../applications/emulators/resim {};
 
-  retrofe = callPackage ../applications/emulators/retrofe { };
-
   rpcs3 = libsForQt5.callPackage ../applications/emulators/rpcs3 { };
 
   ruffle = callPackage ../applications/emulators/ruffle { };
